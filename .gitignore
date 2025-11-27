@@ -1,0 +1,17 @@
+# Ignorar archivos de datos binarios y CSVs generados
+*.dat
+csv/
+*.csv
+
+# Ignorar directorio de salida y binarios
+output/
+gestor_clinico
+gestor_gui
+
+# Ignorar archivos de build y temporales
+*.o
+*.obj
+*.exe
+*.out
+*~
+.vscode/
