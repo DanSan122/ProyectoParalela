@@ -126,6 +126,7 @@ long long leerHead(int pos) {
 void insertarRegistro(const RegistroClinico& r) {
     int pos = hash1(r.dni);
     RegistroClinico tmp = r;
+    time_utils::ScopedTimer t(std::string("insertarRegistro DNI:") + std::to_string(r.dni));
     // exclusive on table while updating head
     std::unique_lock<std::shared_mutex> wlock(table_mutex);
     // append record safely
@@ -154,6 +155,7 @@ std::vector<long long> buscarRegistros(int dni) {
     registros_file.clear();  // Limpia flags como EOF
     registros_file.seekg(0, std::ios::beg); // Vuelve al inicio
 
+    time_utils::ScopedTimer t(std::string("buscarRegistros DNI:") + std::to_string(dni));
     std::vector<long long> offsets;
     int pos = hash1(dni);
     long long offset = leerHead(pos);

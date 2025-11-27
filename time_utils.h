@@ -7,6 +7,8 @@
 #include <string>
 #include <iostream>
 #include <unistd.h>
+#include <fstream>
+#include <filesystem>
 
 namespace time_utils {
 
@@ -27,6 +29,24 @@ struct ScopedTimer {
         auto end = clock::now();
         auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
         std::cout << "[TIMER] " << name << " -> " << ms << " ms" << std::endl;
+        // Also append to project-root `output/timings.csv`.
+        try {
+            auto cwd = std::filesystem::current_path();
+            std::filesystem::path outdir;
+            if (cwd.filename() == "output") {
+                // running from output/, use parent/output to avoid output/output
+                outdir = cwd.parent_path() / "output";
+            } else {
+                outdir = cwd / "output";
+            }
+            std::filesystem::create_directories(outdir);
+            std::ofstream out((outdir / "timings.csv").string(), std::ios::app);
+            if (out.is_open()) {
+                out << name << "," << ms << "\n";
+            }
+        } catch (...) {
+            // ignore any errors writing timings
+        }
     }
 };
 
