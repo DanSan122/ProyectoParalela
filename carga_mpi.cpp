@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 #include <cstring>
+#include "time_utils.h"
 
 
 // Simple hash function (potencia de 2 TABLE_SIZE)
@@ -75,6 +76,9 @@ int main(int argc, char** argv)
     int world_rank, world_size;
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    // Tiempo total de ejecución del proceso (solo se imprime si hay TTY)
+    time_utils::ScopedTimer total_timer(std::string("carga_mpi total (rank ") + std::to_string(world_rank) + ")");
 
     // Maestro recopila lista de csv en ../csv
     std::vector<std::string> files;

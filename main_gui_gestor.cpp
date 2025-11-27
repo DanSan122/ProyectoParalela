@@ -23,6 +23,7 @@
 
 // Usar definiciones compartidas
 #include "common.h"
+#include "time_utils.h"
 
 // Declaración de la función CUDA (wrapper) -- definida en kernel_filtro.cu
 // Usar `const char*` para poder pasar directamente la ruta gestionada por la GUI
@@ -361,6 +362,9 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent) {
 
         QApplication::setOverrideCursor(Qt::WaitCursor);
         long long resultado = 0;
+        // Medir tiempo del análisis (imprime solo si la app fue lanzada desde consola)
+        std::string modo_s = modo.toStdString();
+        time_utils::ScopedTimer analiza_timer(std::string("Analisis: ") + modo_s + " rango(" + std::to_string(minEdad) + "," + std::to_string(maxEdad) + ")");
         if (modo.startsWith("Visitas")) {
             resultado = contarPacientesRangoEdad_GPU(path.c_str(), minEdad, maxEdad);
         } else {
@@ -590,6 +594,8 @@ void MainWindow::eliminar() {
 // Función principal, inicia la aplicación Qt y la ventana principal
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
+    // Medir el tiempo de inicialización (solo se imprime si la app fue lanzada desde consola)
+    time_utils::ScopedTimer init_timer("GUI inicializarArchivos");
     inicializarArchivos(); // Prepara los archivos binarios
     MainWindow w;
     w.show();
