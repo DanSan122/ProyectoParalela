@@ -72,6 +72,7 @@ std::vector<std::string> leerLineasCSV(const std::string &ruta)
 
 int main(int argc, char** argv)
 {
+    // MPI: Inicio del entorno MPI (MPI_Init)
     MPI_Init(&argc, &argv);
     int world_rank, world_size;
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
@@ -80,6 +81,8 @@ int main(int argc, char** argv)
     // Tiempo total de ejecución del proceso (solo se imprime si hay TTY)
     time_utils::ScopedTimer total_timer(std::string("carga_mpi total (rank ") + std::to_string(world_rank) + ")");
 
+    // MPI: Maestro recopila lista de csv en ../csv y prepara broadcast
+    // (CSV list serialization + MPI_Bcast más abajo)
     // Maestro recopila lista de csv en ../csv
     std::vector<std::string> files;
     if (world_rank == 0) {
@@ -100,6 +103,7 @@ int main(int argc, char** argv)
         concat = oss.str();
     }
 
+    // MPI: Broadcast longitud y contenido de la lista de CSVs
     // Broadcast longitud
     int len = (int)concat.size();
     MPI_Bcast(&len, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -116,7 +120,8 @@ int main(int argc, char** argv)
         while (std::getline(iss, p)) if (!p.empty()) files.push_back(p);
     }
 
-    // Asignación simple: repartición por round-robin entre ranks
+    // MPI: Asignación simple — repartición por round-robin entre ranks
+    // Aquí puedes reemplazar por reparto por tamaño/line-count si lo deseas
     std::vector<std::string> my_files;
     for (size_t i = 0; i < files.size(); ++i) {
         if ((int)(i % world_size) == world_rank) my_files.push_back(files[i]);
@@ -126,7 +131,8 @@ int main(int argc, char** argv)
         if (world_rank == 0) std::cout << "Ningún archivo asignado a este rank?" << std::endl;
     }
 
-    // Por cada archivo, leer líneas, parsear en paralelo con OpenMP y escribir temp_rank_X.dat
+    // OpenMP: Por cada archivo, leer líneas, parsear en paralelo con OpenMP
+    // y escribir temp_rank_X.dat
     std::vector<RegistroClinico> acumulado;
     for (auto &ruta : my_files) {
         std::cout << "Rank " << world_rank << " procesando " << ruta << std::endl;
@@ -142,7 +148,7 @@ int main(int argc, char** argv)
         std::cout << "Rank " << world_rank << " parseó " << n << " líneas de " << ruta << std::endl;
     }
 
-    // Escribe archivo temporal binario
+    // I/O: Escribe archivo temporal binario `temp_rank_X.dat` (uno por proceso)
     std::ostringstream tmpname;
     tmpname << "temp_rank_" << world_rank << ".dat";
     std::ofstream out(tmpname.str(), std::ios::binary);
@@ -157,6 +163,8 @@ int main(int argc, char** argv)
 
     // Maestro unifica todos los temporales en registros.dat (append en orden de rank)
     if (world_rank == 0) {
+        // MPI: Maestro — concatenación de temporales y reconstrucción de tabla hash
+        // (concatenación de temp_rank_X.dat -> registros.dat)
         // Asegurar existencia de tabla_hash.dat (vacía) para compatibilidad con la GUI
         if (!std::filesystem::exists("tabla_hash.dat")) {
             std::ofstream th("tabla_hash.dat", std::ios::binary);
@@ -184,6 +192,7 @@ int main(int argc, char** argv)
         registros.close();
 
         // Reconstruir tabla hash y actualizar pos_siguiente en registros.dat
+        // (Aquí se recorre registros.dat, se actualizan pos_siguiente y se genera tabla_hash.dat)
         try {
             std::vector<HashEntry> table(TABLE_SIZE);
             for (int i = 0; i < TABLE_SIZE; ++i) table[i].head_offset = NULL_OFFSET;

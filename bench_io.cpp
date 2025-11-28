@@ -1,6 +1,7 @@
 // bench_io.cpp
-// Pequeña utilidad CLI para medir tiempos de búsqueda e inserción usando
-// el mismo formato binario (`registros.dat`, `tabla_hash.dat`).
+// Benchmark CLI: utilitario para medir performance de I/O y operaciones CRUD
+// Location: bench_io.cpp -> main(), load_table(), buscar_offsets(), insertar_dummy()
+// Uso: bench_io <search|insert> <registros.dat path> <tabla_hash.dat path> <dni> [iters]
 
 #include "common.h"
 #include "time_utils.h"

@@ -10,7 +10,9 @@
 #include <iostream>
 #include <unordered_set>
 
-// Stub CPU: cuenta registros (visitas) en rango de edad
+// GPU Stub (CPU fallback): exported functions
+// - contarPacientesRangoEdad_GPU: cuenta visitas en CPU (comportamiento equivalente al kernel)
+// Location: gpu_stub.cpp -> contarPacientesRangoEdad_GPU
 extern "C" long long contarPacientesRangoEdad_GPU(const char* archivo, int minEdad, int maxEdad)
 {
     const size_t CHUNK = 100000;
@@ -44,7 +46,8 @@ extern "C" long long contarPacientesRangoEdad_GPU(const char* archivo, int minEd
     return totalEncontrados;
 }
 
-// Stub CPU: cuenta pacientes únicos (por DNI) en rango de edad
+// GPU Stub (CPU fallback): conteo único (deduplicación en host)
+// Location: gpu_stub.cpp -> contarPacientesRangoEdadUnicos_CPU
 extern "C" long long contarPacientesRangoEdadUnicos_CPU(const char* archivo, int minEdad, int maxEdad)
 {
     const size_t CHUNK = 100000;

@@ -13,6 +13,8 @@
 #include <iostream>
 #include <vector>
 
+// CUDA Kernel (GPU): filtrar registros por edad
+// Location: kernel_filtro.cu -> filtrarPorEdadKernel
 // Kernel que marca flags[idx]=1 si edad in [minEdad, maxEdad]
 __global__ void filtrarPorEdadKernel(const RegistroClinico* recs, int n, int minEdad, int maxEdad, int* flags)
 {
@@ -22,6 +24,8 @@ __global__ void filtrarPorEdadKernel(const RegistroClinico* recs, int n, int min
     flags[idx] = (edad >= minEdad && edad <= maxEdad) ? 1 : 0;
 }
 
+// CUDA Wrapper (GPU): contarPacientesRangoEdad_GPU
+// Location: kernel_filtro.cu -> contarPacientesRangoEdad_GPU
 extern "C" long long contarPacientesRangoEdad_GPU(char* archivo, int minEdad, int maxEdad)
 {
     const size_t CHUNK = 100000; // 100k registros por chunk

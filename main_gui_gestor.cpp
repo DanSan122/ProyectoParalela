@@ -25,10 +25,10 @@
 #include "common.h"
 #include "time_utils.h"
 
-// Declaración de la función CUDA (wrapper) -- definida en kernel_filtro.cu
-// Usar `const char*` para poder pasar directamente la ruta gestionada por la GUI
+// GPU integration points (wrappers)
+// CUDA wrapper (implementación en kernel_filtro.cu, requiere nvcc build)
 extern "C" long long contarPacientesRangoEdad_GPU(const char* archivo, int minEdad, int maxEdad);
-// CPU stub que cuenta pacientes únicos (si está disponible)
+// CPU stub (fallback) — implementado en gpu_stub.cpp
 extern "C" long long contarPacientesRangoEdadUnicos_CPU(const char* archivo, int minEdad, int maxEdad);
 
 // Archivos binarios para la tabla hash y los registros clínicos
@@ -124,6 +124,7 @@ long long leerHead(int pos) {
 
 // Inserta un nuevo registro clínico en la lista enlazada correspondiente al hash del DNI
 void insertarRegistro(const RegistroClinico& r) {
+    // GUI CRUD: insertarRegistro -> escribe en `registros.dat` y actualiza `tabla_hash.dat` (persistente)
     int pos = hash1(r.dni);
     RegistroClinico tmp = r;
     time_utils::ScopedTimer t(std::string("insertarRegistro DNI:") + std::to_string(r.dni));
@@ -152,6 +153,7 @@ void insertarRegistro(const RegistroClinico& r) {
 
 // Busca todos los registros clínicos asociados a un DNI y devuelve sus offsets en el archivo
 std::vector<long long> buscarRegistros(int dni) {
+    // GUI CRUD: buscarRegistros -> recorre lista enlazada usando `in_memory_table` y `registros.dat`
     registros_file.clear();  // Limpia flags como EOF
     registros_file.seekg(0, std::ios::beg); // Vuelve al inicio
 
@@ -364,13 +366,14 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent) {
 
         QApplication::setOverrideCursor(Qt::WaitCursor);
         long long resultado = 0;
-        // Medir tiempo del análisis (imprime solo si la app fue lanzada desde consola)
+        // Análisis: aquí se llama al wrapper GPU o al stub CPU según modo
         std::string modo_s = modo.toStdString();
         time_utils::ScopedTimer analiza_timer(std::string("Analisis: ") + modo_s + " rango(" + std::to_string(minEdad) + "," + std::to_string(maxEdad) + ")");
         if (modo.startsWith("Visitas")) {
+            // Llamada al wrapper GPU (si fue compilado con CUDA)
             resultado = contarPacientesRangoEdad_GPU(path.c_str(), minEdad, maxEdad);
         } else {
-            // Llamamos al stub CPU para contar pacientes únicos
+            // Llamada al stub CPU para conteo de pacientes únicos
             resultado = contarPacientesRangoEdadUnicos_CPU(path.c_str(), minEdad, maxEdad);
         }
         QApplication::restoreOverrideCursor();
@@ -596,7 +599,8 @@ void MainWindow::eliminar() {
 // Función principal, inicia la aplicación Qt y la ventana principal
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
-    // Medir el tiempo de inicialización (solo se imprime si la app fue lanzada desde consola)
+    // GUI: inicialización de archivos y carga de tabla en memoria
+    // (inicializarArchivos carga `tabla_hash.dat` a `in_memory_table`)
     time_utils::ScopedTimer init_timer("GUI inicializarArchivos");
     inicializarArchivos(); // Prepara los archivos binarios
     MainWindow w;
